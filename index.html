@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PoupaPix</title>
+
+  <!-- PWA: permite instalar o app na tela inicial -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1C1C1E">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PoupaPix">
+
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Aplica o tema salvo antes da página desenhar, pra evitar "flash" do tema errado.
+    (function () {
+      var theme = localStorage.getItem('poupapix_theme') || 'dark';
+      if (theme === 'light') document.documentElement.classList.add('theme-light');
+    })();
+  </script>
+</head>
+<body>
+
+  <main class="app-container">
+
+    <!-- TELA 1: SELEÇÃO DE USUÁRIO -->
+    <section id="screen-select-user" class="screen active">
+      <div class="top-bar top-bar-end">
+        <button class="icon-btn theme-toggle-btn" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+      </div>
+
+      <div class="brand-header">
+        <div class="brand-icon">🐷</div>
+        <h1>PoupaPix</h1>
+        <p class="tagline">Quanto posso gastar hoje sem deixar de economizar?</p>
+      </div>
+
+      <h2 class="section-title">Quem está usando?</h2>
+
+      <div id="users-list" class="users-list"></div>
+
+      <button id="btn-open-create" class="btn-card-create" onclick="showScreen('screen-create-user')">
+        <span class="icon">＋</span> Criar usuário
+      </button>
+
+      <p id="limit-warning" class="limit-warning hidden">
+        Limite máximo de 4 usuários atingido.
+      </p>
+    </section>
+
+    <!-- TELA 2: CRIAR USUÁRIO -->
+    <section id="screen-create-user" class="screen">
+      <div class="top-bar top-bar-between">
+        <button class="btn-back" onclick="showScreen('screen-select-user')">
+          ← Voltar
+        </button>
+        <button class="icon-btn theme-toggle-btn" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+      </div>
+
+      <div class="form-header">
+        <h2>Criar usuário</h2>
+
+        <div class="avatar-upload-wrapper">
+          <label for="avatar-file-input" class="avatar-placeholder">
+            <span id="avatar-default-icon">👤</span>
+            <img id="avatar-img-preview" class="avatar-img hidden" alt="Prévia">
+            <div class="avatar-overlay">📷</div>
+          </label>
+
+          <input
+            type="file"
+            id="avatar-file-input"
+            accept="image/*"
+            onchange="handleImageUpload(event)"
+          >
+
+          <span class="avatar-hint">Toque na foto para alterar</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="username-input">Nome de usuário</label>
+        <input
+          type="text"
+          id="username-input"
+          placeholder="Digite seu nome..."
+          maxlength="15"
+          autocomplete="off"
+        >
+      </div>
+
+      <button class="btn-primary" onclick="handleCreateUser()">
+        SALVAR USUÁRIO
+      </button>
+    </section>
+
+    <!-- TELA 3: APP SHELL (Início / Resumo / Ajustes) -->
+    <section id="screen-app-shell" class="screen">
+
+      <header class="dash-header">
+        <div class="dash-user-info">
+          <div id="dash-avatar-container"></div>
+          <div>
+            <span class="greeting">Olá,</span>
+            <h2 id="dash-username">Usuário</h2>
+          </div>
+        </div>
+        <div class="dash-header-actions">
+          <button class="icon-btn theme-toggle-btn" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+          <button class="icon-btn" onclick="logoutUser()" title="Trocar Usuário">🚪</button>
+        </div>
+      </header>
+
+      <div id="view-container" class="view-container">
+
+        <!-- VIEW: INÍCIO -->
+        <div id="view-home" class="app-view active">
+          <div class="balance-card">
+            <span class="card-label">Você pode gastar hoje</span>
+            <h1 id="home-daily-limit">R$ 0,00</h1>
+
+            <div class="balance-details">
+              <div class="detail-item">
+                <span class="detail-label">💵 Dinheiro livre</span>
+                <span id="home-free-money" class="detail-value text-white">R$ 0,00</span>
+              </div>
+              <div class="detail-divider"></div>
+              <div class="detail-item">
+                <span class="detail-label">🐷 Protegido</span>
+                <span id="home-protected" class="detail-value text-blue">R$ 0,00</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-actions-stack">
+            <button class="btn-action-full btn-expense-full" onclick="openAddExpenseModal()">
+              💸 Registrar Gasto
+            </button>
+            <button class="btn-action-full btn-secondary-full" onclick="openAddIncomeModal()">
+              ➕ Adicionar Dinheiro
+            </button>
+          </div>
+
+          <div class="quick-actions">
+            <button class="btn-action btn-neutral" onclick="openCanIBuyModal()">
+              🤔 Posso comprar?
+            </button>
+            <button class="btn-action btn-neutral" onclick="openGoalsModal()">
+              🎯 Metas
+            </button>
+          </div>
+
+          <div class="transactions-section">
+            <div class="section-header">
+              <h3>Últimas movimentações</h3>
+            </div>
+            <div id="home-transactions-list" class="transactions-list">
+              <p class="empty-state">Nenhuma movimentação registrada ainda.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: RESUMO -->
+        <div id="view-summary" class="app-view">
+          <h2 class="view-title">Resumo</h2>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="detail-label">Entradas</span>
+              <span id="summary-income" class="stat-value text-green">R$ 0,00</span>
+            </div>
+            <div class="stat-card">
+              <span class="detail-label">Gastos</span>
+              <span id="summary-expense" class="stat-value text-red">R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card-wide">
+            <span class="detail-label">Dinheiro protegido</span>
+            <span id="summary-protected" class="stat-value text-blue">R$ 0,00</span>
+          </div>
+
+          <div class="transactions-section">
+            <div class="section-header">
+              <h3>Extrato completo</h3>
+            </div>
+            <div id="summary-transactions-list" class="transactions-list">
+              <p class="empty-state">Nenhuma movimentação registrada ainda.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: AJUSTES -->
+        <div id="view-settings" class="app-view">
+          <h2 class="view-title">Ajustes</h2>
+
+          <div class="settings-card">
+            <span class="settings-card-title">Perfil</span>
+            <div class="settings-profile-row">
+              <label for="settings-avatar-input" class="avatar-placeholder avatar-placeholder-sm">
+                <span id="settings-avatar-default-icon">👤</span>
+                <img id="settings-avatar-img-preview" class="avatar-img hidden" alt="Avatar">
+                <div class="avatar-overlay">📷</div>
+              </label>
+              <input type="file" id="settings-avatar-input" accept="image/*" onchange="handleSettingsAvatarUpload(event)">
+              <input type="text" id="settings-name-input" maxlength="15" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <span class="settings-card-title">Modo de economia</span>
+            <div id="settings-mode-options" class="settings-mode-options"></div>
+            <div id="settings-custom-wrapper" class="settings-custom-wrapper hidden">
+              <input type="range" id="settings-custom-slider" min="5" max="90" step="1" value="45">
+              <span id="settings-custom-label" class="settings-custom-label"></span>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <span class="settings-card-title">Backup</span>
+            <p class="settings-hint">Seus dados ficam salvos apenas neste navegador, sem servidor ou conta.</p>
+            <button class="btn-secondary-full" onclick="exportBackup()">📤 Exportar backup</button>
+          </div>
+
+          <div class="settings-card">
+            <span class="settings-card-title">Sobre</span>
+            <button class="btn-secondary-full" onclick="openAboutModal()">ℹ️ Sobre o PoupaPix</button>
+          </div>
+
+          <div class="settings-card">
+            <span class="settings-card-title">Apoie o PoupaPix</span>
+            <button class="btn-secondary-full" disabled>🎬 Assistir anúncio (em breve)</button>
+            <button class="btn-secondary-full" onclick="copyPixKey()">💚 Copiar chave Pix</button>
+            <a class="btn-secondary-full btn-link" href="https://discord.gg/Fe7JfaxS8" target="_blank" rel="noopener noreferrer">💬 Entrar no Discord</a>
+          </div>
+
+          <button class="btn-danger-full" onclick="confirmResetUserData()">🗑️ Resetar meus dados</button>
+          <p class="settings-version">PoupaPix v0.2 (Web)</p>
+        </div>
+
+      </div>
+
+      <nav class="bottom-nav">
+        <button class="nav-item" data-view="home">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Início</span>
+        </button>
+        <button class="nav-item" data-view="summary">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Resumo</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Ajustes</span>
+        </button>
+      </nav>
+
+    </section>
+
+    <!-- CAMADA DE MODAIS -->
+    <div id="modal-root" class="modal-root hidden">
+      <div class="modal-header">
+        <h2 id="modal-title"></h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+    </div>
+
+    <div id="toast-message" class="toast hidden"></div>
+
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // Registra o Service Worker para o app funcionar offline quando instalado.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch((err) => {
+          console.warn('Service Worker não registrado:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
